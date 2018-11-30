@@ -1,0 +1,9 @@
+其中导出HADOOP_USER_NAME为hdfs用户，否则会报Permission Denied的错误；HBASE_MANAGES_ZK=false表示不使用HBase自带的ZooKeeper；HBASE_MASTER_LIST为HBase集群中除当前master外的其余master的服务地址和pod名的对应关系；HBASE_REGION_LIST为HBase集群中除当前regionserver外的其余regionserver的服务地址和pod名的对应关系；最后根据 HBASE_SERVER_TYPE 的取值来确定是启master还是regionserver。
+
+准备好这些文件后即可创建HBase的image：
+
+docker build -t lp/hadoop-hbase:1.0.1 .
+docker tag lp/hadoop-hbase:1.0.1 mldp/cloud:hadoop-hbase-1.0.1
+docker push mldp/cloud:hadoop-hbase-1.0.1
+
+

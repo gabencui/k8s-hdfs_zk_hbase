@@ -1,0 +1,29 @@
+kubectl create -f hbase.yaml
+
+在daskboard中查看，会发现激活的master中有tasks始终在运行未完成，需要等一段时间才能完成。
+
+可以在daskboard中查看hbase的信息
+服务器ip:nodeport，也就是60001对应的端口
+
+登录激活的master中
+
+hbase shell
+whoami
+list      # 如果list出错，说正在初始化中，要等待，可以在dashboard中看
+exists 't1'
+create 't1',{NAME => 'f1', VERSIONS => 2},{NAME => 'f2', VERSIONS => 2}
+describe 't1'
+disable 't1'
+alter 't1',{NAME=>'f11', VERSIONS => 2},{NAME=>'f12', VERSIONS => 2}
+enable 't1'
+put 't1','rowkey001','f11:col1','value01'
+get 't1','rowkey001', 'f11:col1'
+
+去另一个master查询
+hbase shell
+list
+get 't1','rowkey001', 'f11:col1'
+
+
+
+

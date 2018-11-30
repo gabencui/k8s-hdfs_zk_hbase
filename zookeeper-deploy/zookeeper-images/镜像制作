@@ -1,0 +1,13 @@
+config-and-run.sh和zoo.cfg为镜像的配置文件
+Dockerfile在 fabric8/zookeeper 的image基础上（ubuntu16.04）添加进入自己的配置文件。
+
+要修改下载地址，因为
+
+http://apache.mirrors.pair.com/zookeeper/zookeeper-3.4.9/zookeeper-3.4.9.tar.gz下载不了
+换成
+wget -q -O - http://mirror.bit.edu.cn/apache/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-${ZOOKEEPER_VERSION}.tar.gz | tar -xzf - -C /opt \
+
+
+docker build -t hbase-zookeeper .   构建镜像
+推动到
+mldp/cloud:hbase-zookeeper-1.0.0

@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hbase-master-1
+  namespace: cloudai-2     # 设置命名空间
+spec:
+  selector:
+    app: hbase-master-pod-1    # 绑定pod
+  type: NodePort              # ClusterIP只允许集群内访问
+#  clusterIP: "10.233.9.21"    # 指定集群ip，固定ip为了能在后面更好的绑定上
+  ports:
+    - name: rpc
+      port: 60000
+      targetPort: 60000        # 配置的hbase的链接端口
+      nodePort: 30034     
+    - name: info
+      port: 60001            # hbase运行状态的网页查询端口
+      targetPort: 60001
+      nodePort: 30035
+    - name: thrift
+      port: 9090           #　thrift服务器ip，让外界通过thrift来访问hbase
+      targetPort: 9090
+      nodePort: 30036
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hbase-master-deployment-1     # 部署的名称，部署负责pod的正常运行个数，不负责pod内分布式处理
+  namespace: cloudai-2
+spec:   # 包括一些container，storage，volume以及其他Kubernetes需要的参数，以及诸如是否在容器失败时重新启动容器的属性。可在特定Kubernetes API找到完整的Kubernetes Pod的属性。
+  selector:    
+    matchLabels:
+      app: hbase-master-pod-1   # 根据标签选择选择部署下一层的容器组，复制保持容器组的正常运行个数
+  replicas: 1   # 选项定义需要的副本个数，此处可以设置很多属性，例如受此Deployment影响的Pod的选择器等
+  template:   # template其实就是对Pod对象的定义。没有为pod指定名称，会自动在deployment的名称后面加随机字符串
+    metadata:
+      labels:
+        app: hbase-master-pod-1   # 为容器组（pod）打标签，
+    spec: 
+#      restartPolicy: Always     #　表示如果该Pod挂掉的话将一直尝试重新启动它
+#      nodeSelector:
+#        kubernetes.io/hostname: node1  # 选择部署的主机，两个master的pod部署在不同的机器上。才能防止宕机
+      imagePullSecrets:
+      - name: hubsecret
+      containers:
+      - name: hbase-master-container-1     # 容器名称
+        image: luanpeng/cloud:hadoop-hbase-1.0.0    # 基于的镜像名, 根据镜像创建容器
+#        command: ['sleep','30000']
+        ports:
+          - containerPort: 60000
+          - containerPort: 60001
+          - containerPort: 9090
+        env:
+          - name: HBASE_SERVER_TYPE     # hbase角色类型。根据 HBASE_SERVER_TYPE 的取值来确定是启master还是regionserver
+            value: master
+          - name: MASTER_DEBUG    # 是否启动调试模式，启动后，不会自动启动master
+            value: "no"
+          - name: START_THRIFT     # 是否启动thrift
+            value: "yes"
+          - name: HBASE_MASTER_PORT    # hbase的master端口号
+            value: "60000"
+          - name: HBASE_MASTER_INFO_PORT  # hbase的master信息端口号
+            value: "60001"
+          - name: HBASE_REGION_PORT    # hbase的region端口号
+            value: "60010"
+          - name: HBASE_REGION_INFO_PORT   # hbase的region的信息端口号
+            value: "60011"
+          - name: HDFS_SERVICE   # hdfs服务，HDFS_SERVICE为HDFS服务经过skyDNS之后的对应域名，若未设置skyDNS则此处值设为HDFS服务对应的IP地址
+            value: "10.96.9.2"   # hdfs的集群ip
+          - name: HDFS_PORT   # hdfs端口号
+            value: "4231"
+          - name: ZOOKEEPER_SERVICE_LIST   # zookeeper列表，域名，同HDFS_SERVICE意义
+            value: "10.96.9.11,10.96.9.12,10.96.9.13"   # zookeeper集群ip
+          - name: ZOOKEEPER_PORT   # zookeeper端口号
+            value: "2181"
+          - name: ZNODE_PARENT   # znode_parent
+            value: hbase
+          - name: HBASE_MASTER_LIST   # 目前没用到
+            value: "10.96.9.22:hbase-master-2"
+          - name: HBASE_REGION_LIST  # 目前没用到
+            value: "10.96.9.23:hbase-region-1 10.96.9.24:hbase-region-2" 
+

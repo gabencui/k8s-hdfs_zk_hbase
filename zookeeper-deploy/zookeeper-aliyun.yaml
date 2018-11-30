@@ -1,0 +1,206 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-1
+  namespace: cloudai-2     # 设置命名空间
+  labels:
+      name: zookeeper-1
+spec:
+  ports:
+    - name: client
+      port: 2181
+      targetPort: 2181
+    - name: followers
+      port: 2888
+      targetPort: 2888
+    - name: election
+      port: 3888
+      targetPort: 3888
+  selector:
+    name: zookeeper
+    server-id: "1"
+  type: ClusterIP          # 只能集群内部访问
+  clusterIP: 172.19.9.11    # 指定服务的集群ip，必须保障可用并且没有被占用
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-2
+  namespace: cloudai-2     # 设置命名空间
+  labels:
+      name: zookeeper-2
+spec:
+  ports:
+    - name: client
+      port: 2181
+      targetPort: 2181
+    - name: followers
+      port: 2888
+      targetPort: 2888
+    - name: election
+      port: 3888
+      targetPort: 3888
+  selector:
+    name: zookeeper
+    server-id: "2"
+  type: ClusterIP
+  clusterIP: 172.19.9.12   # 指定服务的集群ip，必须保障可用并且没有被占用
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-3
+  namespace: cloudai-2     # 设置命名空间
+  labels:
+      name: zookeeper-3
+spec:
+  ports:
+    - name: client
+      port: 2181
+      targetPort: 2181
+    - name: followers
+      port: 2888
+      targetPort: 2888
+    - name: election
+      port: 3888
+      targetPort: 3888
+  selector:
+    name: zookeeper
+    server-id: "3"
+  type: ClusterIP
+  clusterIP: 172.19.9.13  # 指定服务的集群ip，必须保障可用并且没有被占用
+---
+apiVersion: apps/v1    # 只有apps/v1中才有Deployment这种资源类型
+kind: Deployment
+metadata:
+  name: zookeeper-1
+  namespace: cloudai-2     # 设置命名空间
+spec:
+  selector:    
+    matchLabels:
+      name: zookeeper   # 根据标签选择选择部署下一层的容器组，复制保持容器组的正常运行个数
+      server-id: "1"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: zookeeper
+        server-id: "1"
+    spec:
+      volumes:
+        - hostPath:
+            path: /hbase/data1/kubernetes/zookeeper/data1        # 主机目录，存储数据
+          name: data
+        - hostPath:
+            path: /hbase/data1/kubernetes/zookeeper/log1
+          name: log
+      imagePullSecrets:
+      - name: hubsecret
+      containers:
+        - name: server
+          image: mldp/cloud:hbase-zookeeper-1.0.0
+          env:
+            - name: SERVER_ID                  # 将这两个变量传入到zookeeper的sh启动文件中，zookeeper去相互链接
+              value: "1"
+            - name: MAX_SERVERS
+              value: "3"
+          ports:
+            - containerPort: 2181
+            - containerPort: 2888
+            - containerPort: 3888
+          volumeMounts:
+            - mountPath: /opt/zookeeper/data
+              name: data
+            - mountPath: /opt/zookeeper/log
+              name: log
+      nodeName: cn-shenzhen.i-wz98kc8suj1963finls0   # 固定到指定节点上，因为使用的是主机路径作为存储
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper-2
+  namespace: cloudai-2     # 设置命名空间
+spec:
+  selector:    
+    matchLabels:
+      name: zookeeper   # 根据标签选择选择部署下一层的容器组，复制保持容器组的正常运行个数
+      server-id: "2"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: zookeeper
+        server-id: "2"
+    spec:
+      volumes:
+        - hostPath:
+            path: /hbase/data1/kubernetes/zookeeper/data2
+          name: data
+        - hostPath:
+            path: /hbase/data1/kubernetes/zookeeper/log2
+          name: log
+      imagePullSecrets:
+      - name: hubsecret
+      containers:
+        - name: server
+          image: mldp/cloud:hbase-zookeeper-1.0.0
+          env:
+            - name: SERVER_ID
+              value: "2"
+            - name: MAX_SERVERS
+              value: "3"
+          ports:
+            - containerPort: 2181
+            - containerPort: 2888
+            - containerPort: 3888
+          volumeMounts:
+            - mountPath: /opt/zookeeper/data
+              name: data
+            - mountPath: /opt/zookeeper/log
+              name: log
+      nodeName: cn-shenzhen.i-wz98kc8suj1963finls0    # 根据node的label标签选择主机。因为使用的是主机路径作为存储
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper-3
+  namespace: cloudai-2     # 设置命名空间
+spec:
+  selector:    
+    matchLabels:
+      name: zookeeper   # 根据标签选择选择部署下一层的容器组，复制保持容器组的正常运行个数
+      server-id: "3"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: zookeeper
+        server-id: "3"
+    spec:
+      volumes:
+        - hostPath:
+            path: /hbase/data1/kubernetes/zookeeper/data3
+          name: data
+        - hostPath:
+            path: /hbase/data1/kubernetes/zookeeper/log3
+          name: log
+      imagePullSecrets:
+      - name: hubsecret
+      containers:
+        - name: server
+          image: mldp/cloud:hbase-zookeeper-1.0.0
+          env:
+            - name: SERVER_ID
+              value: "3"
+            - name: MAX_SERVERS
+              value: "3"
+          ports:
+            - containerPort: 2181
+            - containerPort: 2888
+            - containerPort: 3888
+          volumeMounts:
+            - mountPath: /opt/zookeeper/data
+              name: data
+            - mountPath: /opt/zookeeper/log
+              name: log
+      nodeName: cn-shenzhen.i-wz98kc8suj1963finls0   # 根据node的label标签选择主机。因为使用的是主机路径作为存储
